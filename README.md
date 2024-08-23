@@ -1,8 +1,8 @@
-# Goobi workflow Plugin: goobi-plugin-import-kick-start
+# Goobi workflow Plugin: goobi-plugin-import-eth-no-catalogue
 
 <img src="https://goobi.io/wp-content/uploads/logo_goobi_plugin.png" align="right" style="margin:0 0 20px 20px;" alt="Plugin for Goobi workflow" width="175" height="109">
 
-{KICKSTART_DESCRIPTION}
+This Import plugin for Goobi workflow allows to paste multiple lines with record information to automatically create Goobi processes as Monographs or Multi-Volume-Works depending on the identifier. There is no request to the ALMA catalogue happening.
 
 This is a plugin for Goobi workflow, the open source workflow tracking software for digitisation projects. More information about Goobi workflow is available under https://goobi.io. If you want to get in touch with the user community simply go to https://community.goobi.io.
 
@@ -12,7 +12,7 @@ More information about the functionality of this plugin and the complete documen
 
 Detail | Description
 --- | ---
-**Plugin identifier**       | intranda_import_kick_start
+**Plugin identifier**       | intranda_import_eth_no_catalogue
 **Plugin type**             | Import plugin
 **Licence**                 | GPL 2.0 or newer
 **Documentation (German)**  | - no documentation available -
