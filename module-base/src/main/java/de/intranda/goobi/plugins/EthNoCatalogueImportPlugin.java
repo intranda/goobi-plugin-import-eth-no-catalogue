@@ -1,13 +1,17 @@
 package de.intranda.goobi.plugins;
 
 import java.io.File;
+import java.io.IOException;
+import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
 
 import org.apache.commons.configuration.SubnodeConfiguration;
 import org.apache.commons.configuration.XMLConfiguration;
 import org.apache.commons.configuration.reloading.FileChangedReloadingStrategy;
 import org.apache.commons.configuration.tree.xpath.XPathExpressionEngine;
+import org.apache.commons.io.FileUtils;
 import org.apache.commons.lang.StringUtils;
 import org.goobi.production.enums.ImportReturnValue;
 import org.goobi.production.enums.ImportType;
@@ -31,6 +35,7 @@ import ugh.dl.DocStructType;
 import ugh.dl.Fileformat;
 import ugh.dl.Metadata;
 import ugh.dl.MetadataType;
+import ugh.dl.Person;
 import ugh.dl.Prefs;
 import ugh.exceptions.UGHException;
 import ugh.fileformats.mets.MetsMods;
@@ -75,7 +80,7 @@ public class EthNoCatalogueImportPlugin implements IImportPluginVersion2 {
      */
     public EthNoCatalogueImportPlugin() {
         importTypes = new ArrayList<>();
-        importTypes.add(ImportType.Record);
+        importTypes.add(ImportType.FILE);
     }
 
     /**
@@ -95,11 +100,64 @@ public class EthNoCatalogueImportPlugin implements IImportPluginVersion2 {
 
         if (myconfig != null) {
             runAsGoobiScript = myconfig.getBoolean("/runAsGoobiScript", false);
+            collection = myconfig.getString("/collection", "");
         }
     }
 
     /**
-     * This method is used to actually create the Goobi processes this is done based on previously created records
+     * This method is used to generate records based on the imported data
+     * these records will then be used later to generate the Goobi processes
+     */
+    @Override
+    public List<Record> generateRecordsFromFile() {
+        if (StringUtils.isBlank(workflowTitle)) {
+            workflowTitle = form.getTemplate().getTitel();
+        }
+        readConfig();
+
+        // the list where the records are stored
+        List<Record> recordList = new ArrayList<>();
+
+        try {
+            // read the file in to generate the records
+            String content = FileUtils.readFileToString(file, StandardCharsets.UTF_8);
+        
+            // run through the content line by line
+            String lines[] = content.split("\\r?\\n");
+
+            // generate a record for each process to be created
+            for (String line : lines) {
+                
+                // Split the string and generate a hashmap for all needed metadata
+                String fields[] = line.split(";");
+                HashMap<String, String> map = new HashMap<String, String>();
+                String id = fields[0].trim();
+                
+                // put all fields into the hashmap
+                map.put("ID", id);
+                map.put("Author first name", fields[1].trim());
+                map.put("Author last name", fields[2].trim());
+                map.put("Title", fields[3].trim());
+                map.put("Year", fields[4].trim());
+                
+                // create a record and put the hashmap with data to it
+                Record r = new Record();
+                r.setId(id);
+                r.setObject(map);
+                recordList.add(r);                
+            }
+        
+        } catch (IOException e) {
+            log.error("Error while reading the uploaded file", e);
+        }
+
+        // return the list of all generated records
+        return recordList;
+    }
+
+    /**
+     * This method is used to actually create the Goobi processes
+     * this is done based on previously created records
      */
     @Override
     @SuppressWarnings("unchecked")
@@ -109,15 +167,18 @@ public class EthNoCatalogueImportPlugin implements IImportPluginVersion2 {
         }
         readConfig();
 
-        // result of the creation process
+        // some general preparations
+        DocStructType physicalType = prefs.getDocStrctTypeByName("BoundBook");
+        DocStructType logicalType = prefs.getDocStrctTypeByName("Monograph");
+        MetadataType pathimagefilesType = prefs.getMetadataTypeByName("pathimagefiles");
         List<ImportObject> answer = new ArrayList<>();
 
         // run through all records and create a Goobi process for each of it
         for (Record record : records) {
             ImportObject io = new ImportObject();
 
-            // Split the string and generate a hashmap for all needed metadata
-            String[] fields = record.getData().split("\t");
+            String id = record.getId().replaceAll("\\W", "_");
+            HashMap<String, String> map = (HashMap<String, String>) record.getObject();
 
             // create a new mets file
             try {
@@ -128,111 +189,61 @@ public class EthNoCatalogueImportPlugin implements IImportPluginVersion2 {
                 fileformat.setDigitalDocument(dd);
 
                 // create physical DocStruct
-                DocStructType physicalType = prefs.getDocStrctTypeByName("BoundBook");
                 DocStruct physical = dd.createDocStruct(physicalType);
                 dd.setPhysicalDocStruct(physical);
 
                 // set imagepath
-                MetadataType pathimagefilesType = prefs.getMetadataTypeByName("pathimagefiles");
                 Metadata newmd = new Metadata(pathimagefilesType);
                 newmd.setValue("/images/");
                 physical.addMetadata(newmd);
 
-                // create publication
-                DocStruct work = null;
-                if (record.getId().contains("_")) {
-
-                    // create multi volume work
-                    DocStructType anchorType = prefs.getDocStrctTypeByName("MultiVolumeWork");
-                    DocStruct anchor = dd.createDocStruct(anchorType);
-                    dd.setLogicalDocStruct(anchor);
-
-                    // add catalogue id to anchor
-                    Metadata anchorid = new Metadata(prefs.getMetadataTypeByName("CatalogIDDigital"));
-                    anchorid.setValue(record.getId().substring(0, record.getId().indexOf("_")));
-                    anchor.addMetadata(anchorid);
-
-                    // create metadata field for main title
-                    if (fields.length > 3) {
-                        Metadata mdTitle = new Metadata(prefs.getMetadataTypeByName("TitleDocMain"));
-                        mdTitle.setValue(fields[2].trim());
-                        anchor.addMetadata(mdTitle);
-                    }
-
-                    // add collection to work
-                    Metadata mdCollection = new Metadata(prefs.getMetadataTypeByName("singleDigCollection"));
-                    mdCollection.setValue(fields[2].trim());
-                    anchor.addMetadata(mdCollection);
-
-                    // add additional collections to anchor as well
-                    MetadataType typeCollection = prefs.getMetadataTypeByName("singleDigCollection");
-                    for (String c : form.getDigitalCollections()) {
-                        Metadata md = new Metadata(typeCollection);
-                        md.setValue(c);
-                        anchor.addMetadata(md);
-                    }
-
-                    // create volume
-                    DocStructType volumeType = prefs.getDocStrctTypeByName("Volume");
-                    work = dd.createDocStruct(volumeType);
-                    anchor.addChild(work);
-                } else {
-
-                    // create a monograph
-                    DocStructType logicalType = prefs.getDocStrctTypeByName("Monograph");
-                    work = dd.createDocStruct(logicalType);
-                    dd.setLogicalDocStruct(work);
-                }
+                // create logical DocStruct
+                DocStruct logical = dd.createDocStruct(logicalType);
+                dd.setLogicalDocStruct(logical);
 
                 // create metadata field for CatalogIDDigital with cleaned value
                 Metadata md1 = new Metadata(prefs.getMetadataTypeByName("CatalogIDDigital"));
-                md1.setValue(record.getId().replaceAll("\\W", "_"));
-                work.addMetadata(md1);
-
-                // create metadata field for year and sorting number
-                if (record.getId().contains("_")) {
-                    String year = record.getId().substring(record.getId().indexOf("_") + 1);
-
-                    // year - not written, because in ETH it is not a year but a volume number
-                    // Metadata md3 = new Metadata(prefs.getMetadataTypeByName("PublicationYear"));
-                    // md3.setValue(year);
-                    // work.addMetadata(md3);
-
-                    // Sorting number
-                    Metadata md4 = new Metadata(prefs.getMetadataTypeByName("CurrentNoSorting"));
-                    md4.setValue(year);
-                    work.addMetadata(md4);
-                }
-
-                // create metadata field for shelfmark
-                Metadata mdShelfmark = new Metadata(prefs.getMetadataTypeByName("shelfmarksource"));
-                mdShelfmark.setValue(fields[1].trim());
-                work.addMetadata(mdShelfmark);
-
-                // add collection to work
-                Metadata mdCollection = new Metadata(prefs.getMetadataTypeByName("singleDigCollection"));
-                mdCollection.setValue(fields[2].trim());
-                work.addMetadata(mdCollection);
+                md1.setValue(map.get("ID").replaceAll("\\W", "_"));
+                logical.addMetadata(md1);
 
                 // create metadata field for main title
-                if (fields.length > 3) {
-                    Metadata mdTitle = new Metadata(prefs.getMetadataTypeByName("TitleDocMain"));
-                    mdTitle.setValue(fields[2].trim());
-                    work.addMetadata(mdTitle);
+                Metadata md2 = new Metadata(prefs.getMetadataTypeByName("TitleDocMain"));
+                md2.setValue(map.get("Title"));
+                logical.addMetadata(md2);
+                
+                // create metadata field for year
+                Metadata md3 = new Metadata(prefs.getMetadataTypeByName("PublicationYear"));
+                md3.setValue(map.get("Year"));
+                logical.addMetadata(md3);
+                
+                // add author
+                Person per = new Person(prefs.getMetadataTypeByName("Author"));
+                per.setFirstname(map.get("Author first name"));
+                per.setLastname(map.get("Author last name"));
+                //per.setRole("Author");
+                logical.addPerson(per);
+
+                // create metadata field for configured digital collection
+                MetadataType typeCollection = prefs.getMetadataTypeByName("singleDigCollection");
+                if (StringUtils.isNotBlank(collection)) {
+                    Metadata mdc = new Metadata(typeCollection);
+                    mdc.setValue(collection);
+                    logical.addMetadata(mdc);
                 }
 
-                // all additional collections that where selected
+                // and add all collections that where selected
                 if (form != null) {
-                    MetadataType typeCollection = prefs.getMetadataTypeByName("singleDigCollection");
                     for (String c : form.getDigitalCollections()) {
-                        Metadata md = new Metadata(typeCollection);
-                        md.setValue(c);
-                        work.addMetadata(md);
+                        if (!c.equals(collection.trim())) {
+                            Metadata md = new Metadata(typeCollection);
+                            md.setValue(c);
+                            logical.addMetadata(md);
+                        }
                     }
                 }
 
                 // set the title for the Goobi process
-                io.setProcessTitle(record.getId().replaceAll("\\W", "_"));
+                io.setProcessTitle(id);
                 String fileName = getImportFolder() + File.separator + io.getProcessTitle() + ".xml";
                 io.setMetsFilename(fileName);
                 fileformat.write(fileName);
@@ -257,48 +268,17 @@ public class EthNoCatalogueImportPlugin implements IImportPluginVersion2 {
         return runAsGoobiScript;
     }
 
-    @Override
-    public List<Record> splitRecords(String content) {
-        if (StringUtils.isBlank(workflowTitle)) {
-            workflowTitle = form.getTemplate().getTitel();
-        }
-        readConfig();
-
-        // the list where the records are stored
-        List<Record> recordList = new ArrayList<>();
-
-        // run through the content line by line
-        String lines[] = content.split("\\r?\\n");
-
-        // generate a record for each process to be created
-        for (String line : lines) {
-
-            // Split the string and create a record
-            String[] fields = line.split("\t");
-            String id = fields[0].trim();
-            Record r = new Record();
-            r.setId(id);
-            r.setData(line);
-            recordList.add(r);
-        }
-
-        // return the list of all generated records
-        return recordList;
-    }
-
-    /**
-     * This method is used to generate records based on the imported data these records will then be used later to generate the Goobi processes
-     */
-    @Override
-    public List<Record> generateRecordsFromFile() {
-        return null;
-    }
-
     /* *************************************************************** */
     /*                                                                 */
     /* the following methods are mostly not needed for typical imports */
     /*                                                                 */
     /* *************************************************************** */
+
+    @Override
+    public List<Record> splitRecords(String string) {
+        List<Record> answer = new ArrayList<>();
+        return answer;
+    }
 
     @Override
     public List<String> splitIds(String ids) {

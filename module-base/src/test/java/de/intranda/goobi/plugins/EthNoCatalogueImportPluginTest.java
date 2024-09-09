@@ -69,7 +69,7 @@ public class EthNoCatalogueImportPluginTest {
     public void testConstructor() {
         EthNoCatalogueImportPlugin plugin = new EthNoCatalogueImportPlugin();
         assertNotNull(plugin);
-        assertEquals(ImportType.Record, plugin.getImportTypes().get(0));
+        assertEquals(ImportType.FILE, plugin.getImportTypes().get(0));
         plugin.setImportFolder(tempFolder.getAbsolutePath());
     }
 
