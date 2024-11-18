@@ -1,6 +1,7 @@
 package de.intranda.goobi.plugins;
 
 import java.io.File;
+import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -68,7 +69,6 @@ public class EthNoCatalogueImportPlugin implements IImportPluginVersion2 {
     private String workflowTitle;
 
     private boolean runAsGoobiScript = false;
-    private String collection;
 
     /**
      * define what kind of import plugin this is
@@ -102,7 +102,6 @@ public class EthNoCatalogueImportPlugin implements IImportPluginVersion2 {
      * This method is used to actually create the Goobi processes this is done based on previously created records
      */
     @Override
-    @SuppressWarnings("unchecked")
     public List<ImportObject> generateFiles(List<Record> records) {
         if (StringUtils.isBlank(workflowTitle)) {
             workflowTitle = form.getTemplate().getTitel();
@@ -140,96 +139,138 @@ public class EthNoCatalogueImportPlugin implements IImportPluginVersion2 {
 
                 // create publication
                 DocStruct work = null;
-                if (record.getId().contains("_")) {
 
-                    // create multi volume work
-                    DocStructType anchorType = prefs.getDocStrctTypeByName("MultiVolumeWork");
-                    DocStruct anchor = dd.createDocStruct(anchorType);
-                    dd.setLogicalDocStruct(anchor);
+                if (fields.length < 3) {
+                    // beginn of 2 columns only (Archival objects)
 
-                    // add catalogue id to anchor
-                    Metadata anchorid = new Metadata(prefs.getMetadataTypeByName("CatalogIDDigital"));
-                    anchorid.setValue(record.getId().substring(0, record.getId().indexOf("_")));
-                    anchor.addMetadata(anchorid);
+                    // create a archival object
+                    DocStructType logicalType = prefs.getDocStrctTypeByName("ArchivalObject");
+                    work = dd.createDocStruct(logicalType);
+                    dd.setLogicalDocStruct(work);
+
+                    // create metadata field for shelfmark
+                    Metadata mdShelfmark = new Metadata(prefs.getMetadataTypeByName("shelfmarksource"));
+                    mdShelfmark.setValue(fields[0].trim());
+                    work.addMetadata(mdShelfmark);
+
+                    // create date
+                    Metadata mdDate = new Metadata(prefs.getMetadataTypeByName("datedigit"));
+                    mdDate.setValue(fields[1].trim());
+                    work.addMetadata(mdDate);
+
+                    // all additional collections that where selected
+                    if (form != null) {
+                        MetadataType typeCollection = prefs.getMetadataTypeByName("singleDigCollection");
+                        for (String c : form.getDigitalCollections()) {
+                            Metadata md = new Metadata(typeCollection);
+                            md.setValue(c);
+                            work.addMetadata(md);
+                        }
+                    }
+
+                    // create metadata field for CatalogIDDigital with cleaned value
+                    String newID = record.getId().replaceAll("\\W", "_") + "_" + new SimpleDateFormat("yyyyMMdd_HHmmss").format(new java.util.Date());
+                    record.setId(newID);
+                    Metadata md1 = new Metadata(prefs.getMetadataTypeByName("CatalogIDDigital"));
+                    md1.setValue(record.getId().replaceAll("\\W", "_"));
+                    work.addMetadata(md1);
+
+                    // end of 2 columns only (Archival objects)
+                } else {
+
+                    // begin of 4 columns
+                    if (record.getId().contains("_")) {
+
+                        // create multi volume work
+                        DocStructType anchorType = prefs.getDocStrctTypeByName("MultiVolumeWork");
+                        DocStruct anchor = dd.createDocStruct(anchorType);
+                        dd.setLogicalDocStruct(anchor);
+
+                        // add catalogue id to anchor
+                        Metadata anchorid = new Metadata(prefs.getMetadataTypeByName("CatalogIDDigital"));
+                        anchorid.setValue(record.getId().substring(0, record.getId().indexOf("_")));
+                        anchor.addMetadata(anchorid);
+
+                        // create metadata field for main title
+                        if (fields.length > 3) {
+                            Metadata mdTitle = new Metadata(prefs.getMetadataTypeByName("TitleDocMain"));
+                            mdTitle.setValue(fields[3].trim());
+                            anchor.addMetadata(mdTitle);
+                        }
+
+                        // add collection to work
+                        Metadata mdCollection = new Metadata(prefs.getMetadataTypeByName("singleDigCollection"));
+                        mdCollection.setValue(fields[2].trim());
+                        anchor.addMetadata(mdCollection);
+
+                        // add additional collections to anchor as well
+                        MetadataType typeCollection = prefs.getMetadataTypeByName("singleDigCollection");
+                        for (String c : form.getDigitalCollections()) {
+                            Metadata md = new Metadata(typeCollection);
+                            md.setValue(c);
+                            anchor.addMetadata(md);
+                        }
+
+                        // create volume
+                        DocStructType volumeType = prefs.getDocStrctTypeByName("Volume");
+                        work = dd.createDocStruct(volumeType);
+                        anchor.addChild(work);
+                    } else {
+
+                        // create a monograph
+                        DocStructType logicalType = prefs.getDocStrctTypeByName("Monograph");
+                        work = dd.createDocStruct(logicalType);
+                        dd.setLogicalDocStruct(work);
+                    }
+
+                    // create metadata field for CatalogIDDigital with cleaned value
+                    Metadata md1 = new Metadata(prefs.getMetadataTypeByName("CatalogIDDigital"));
+                    md1.setValue(record.getId().replaceAll("\\W", "_"));
+                    work.addMetadata(md1);
+
+                    // create metadata field for year and sorting number
+                    if (record.getId().contains("_")) {
+                        String year = record.getId().substring(record.getId().indexOf("_") + 1);
+
+                        // year - not written, because in ETH it is not a year but a volume number
+                        // Metadata md3 = new Metadata(prefs.getMetadataTypeByName("PublicationYear"));
+                        // md3.setValue(year);
+                        // work.addMetadata(md3);
+
+                        // Sorting number
+                        Metadata md4 = new Metadata(prefs.getMetadataTypeByName("CurrentNoSorting"));
+                        md4.setValue(year);
+                        work.addMetadata(md4);
+                    }
+
+                    // create metadata field for shelfmark
+                    Metadata mdShelfmark = new Metadata(prefs.getMetadataTypeByName("shelfmarksource"));
+                    mdShelfmark.setValue(fields[1].trim());
+                    work.addMetadata(mdShelfmark);
+
+                    // add collection to work
+                    Metadata mdCollection = new Metadata(prefs.getMetadataTypeByName("singleDigCollection"));
+                    mdCollection.setValue(fields[2].trim());
+                    work.addMetadata(mdCollection);
 
                     // create metadata field for main title
                     if (fields.length > 3) {
                         Metadata mdTitle = new Metadata(prefs.getMetadataTypeByName("TitleDocMain"));
                         mdTitle.setValue(fields[3].trim());
-                        anchor.addMetadata(mdTitle);
+                        work.addMetadata(mdTitle);
                     }
 
-                    // add collection to work
-                    Metadata mdCollection = new Metadata(prefs.getMetadataTypeByName("singleDigCollection"));
-                    mdCollection.setValue(fields[2].trim());
-                    anchor.addMetadata(mdCollection);
-
-                    // add additional collections to anchor as well
-                    MetadataType typeCollection = prefs.getMetadataTypeByName("singleDigCollection");
-                    for (String c : form.getDigitalCollections()) {
-                        Metadata md = new Metadata(typeCollection);
-                        md.setValue(c);
-                        anchor.addMetadata(md);
-                    }
-
-                    // create volume
-                    DocStructType volumeType = prefs.getDocStrctTypeByName("Volume");
-                    work = dd.createDocStruct(volumeType);
-                    anchor.addChild(work);
-                } else {
-
-                    // create a monograph
-                    DocStructType logicalType = prefs.getDocStrctTypeByName("Monograph");
-                    work = dd.createDocStruct(logicalType);
-                    dd.setLogicalDocStruct(work);
-                }
-
-                // create metadata field for CatalogIDDigital with cleaned value
-                Metadata md1 = new Metadata(prefs.getMetadataTypeByName("CatalogIDDigital"));
-                md1.setValue(record.getId().replaceAll("\\W", "_"));
-                work.addMetadata(md1);
-
-                // create metadata field for year and sorting number
-                if (record.getId().contains("_")) {
-                    String year = record.getId().substring(record.getId().indexOf("_") + 1);
-
-                    // year - not written, because in ETH it is not a year but a volume number
-                    // Metadata md3 = new Metadata(prefs.getMetadataTypeByName("PublicationYear"));
-                    // md3.setValue(year);
-                    // work.addMetadata(md3);
-
-                    // Sorting number
-                    Metadata md4 = new Metadata(prefs.getMetadataTypeByName("CurrentNoSorting"));
-                    md4.setValue(year);
-                    work.addMetadata(md4);
-                }
-
-                // create metadata field for shelfmark
-                Metadata mdShelfmark = new Metadata(prefs.getMetadataTypeByName("shelfmarksource"));
-                mdShelfmark.setValue(fields[1].trim());
-                work.addMetadata(mdShelfmark);
-
-                // add collection to work
-                Metadata mdCollection = new Metadata(prefs.getMetadataTypeByName("singleDigCollection"));
-                mdCollection.setValue(fields[2].trim());
-                work.addMetadata(mdCollection);
-
-                // create metadata field for main title
-                if (fields.length > 3) {
-                    Metadata mdTitle = new Metadata(prefs.getMetadataTypeByName("TitleDocMain"));
-                    mdTitle.setValue(fields[3].trim());
-                    work.addMetadata(mdTitle);
-                }
-
-                // all additional collections that where selected
-                if (form != null) {
-                    MetadataType typeCollection = prefs.getMetadataTypeByName("singleDigCollection");
-                    for (String c : form.getDigitalCollections()) {
-                        Metadata md = new Metadata(typeCollection);
-                        md.setValue(c);
-                        work.addMetadata(md);
+                    // all additional collections that where selected
+                    if (form != null) {
+                        MetadataType typeCollection = prefs.getMetadataTypeByName("singleDigCollection");
+                        for (String c : form.getDigitalCollections()) {
+                            Metadata md = new Metadata(typeCollection);
+                            md.setValue(c);
+                            work.addMetadata(md);
+                        }
                     }
                 }
+                // end of 4 columns
 
                 // set the title for the Goobi process
                 io.setProcessTitle(record.getId().replaceAll("\\W", "_"));
