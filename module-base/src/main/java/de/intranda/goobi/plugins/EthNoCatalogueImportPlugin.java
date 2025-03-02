@@ -10,6 +10,7 @@ import org.apache.commons.configuration.XMLConfiguration;
 import org.apache.commons.configuration.reloading.FileChangedReloadingStrategy;
 import org.apache.commons.configuration.tree.xpath.XPathExpressionEngine;
 import org.apache.commons.lang.StringUtils;
+import org.goobi.beans.Processproperty;
 import org.goobi.production.enums.ImportReturnValue;
 import org.goobi.production.enums.ImportType;
 import org.goobi.production.enums.PluginType;
@@ -143,6 +144,18 @@ public class EthNoCatalogueImportPlugin implements IImportPluginVersion2 {
                 if (fields.length < 3) {
                     // beginn of 2 columns only (Archival objects)
 
+                    // HSA Archival material
+                    //
+                    // - Identifier
+                    // - Datum
+                    //
+                    // Sample:
+                    //
+                    // HSA_123_001 13.01.2004
+                    // HSA_123_002 14.01.2004
+                    // HSA125  15.01.2004
+                    // HSA_123_003 16.01.2004
+
                     // create a archival object
                     DocStructType logicalType = prefs.getDocStrctTypeByName("ArchivalObject");
                     work = dd.createDocStruct(logicalType);
@@ -157,6 +170,12 @@ public class EthNoCatalogueImportPlugin implements IImportPluginVersion2 {
                     Metadata mdDate = new Metadata(prefs.getMetadataTypeByName("datedigit"));
                     mdDate.setValue(fields[1].trim());
                     work.addMetadata(mdDate);
+
+                    Processproperty pp0 = new Processproperty();
+                    pp0.setTitel("Datum");
+                    pp0.setWert(fields[1].trim());
+                    pp0.setContainer("Scanvorgaben");
+                    io.getProcessProperties().add(pp0);
 
                     // all additional collections that where selected
                     if (form != null) {
@@ -176,9 +195,110 @@ public class EthNoCatalogueImportPlugin implements IImportPluginVersion2 {
                     work.addMetadata(md1);
 
                     // end of 2 columns only (Archival objects)
+                } else if (fields.length > 7) {
+
+                    // begin of 8 columns
+
+                    // Maps
+                    //
+                    // - Identifier
+                    // - Signatur
+                    // - Sammlung
+                    // - Datum
+                    // - Einheiten
+                    // - Scans
+                    // - dpi
+                    // - Bemerkungen
+                    //
+                    // Sample:
+                    //
+                    // 990004203480205503  Rar KS 758  dc_maps 16.01.2025  1   2   400 GS
+
+                    // create a map
+                    DocStructType logicalType = prefs.getDocStrctTypeByName("SingleMap");
+                    work = dd.createDocStruct(logicalType);
+                    dd.setLogicalDocStruct(work);
+
+                    // Identifier - create metadata field for CatalogIDDigital with cleaned value
+                    Metadata md1 = new Metadata(prefs.getMetadataTypeByName("CatalogIDDigital"));
+                    md1.setValue(record.getId().replaceAll("\\W", "_"));
+                    work.addMetadata(md1);
+
+                    // Signatur - create metadata field for shelfmark
+                    Metadata mdShelfmark = new Metadata(prefs.getMetadataTypeByName("shelfmarksource"));
+                    mdShelfmark.setValue(fields[1].trim());
+                    work.addMetadata(mdShelfmark);
+
+                    // Sammlung - add collection to work
+                    Metadata mdCollection = new Metadata(prefs.getMetadataTypeByName("singleDigCollection"));
+                    mdCollection.setValue(fields[2].trim());
+                    work.addMetadata(mdCollection);
+
+                    // Datum - create date
+                    Processproperty pp0 = new Processproperty();
+                    pp0.setTitel("Datum");
+                    pp0.setWert(fields[3].trim());
+                    pp0.setContainer("Scanvorgaben");
+                    io.getProcessProperties().add(pp0);
+
+                    // Einheiten
+                    Processproperty pp1 = new Processproperty();
+                    pp1.setTitel("Einheiten");
+                    pp1.setWert(fields[4].trim());
+                    pp1.setContainer("Scanvorgaben");
+                    io.getProcessProperties().add(pp1);
+
+                    // Scans
+                    Processproperty pp2 = new Processproperty();
+                    pp2.setTitel("Scans");
+                    pp2.setWert(fields[5].trim());
+                    pp2.setContainer("Scanvorgaben");
+                    io.getProcessProperties().add(pp2);
+
+                    // dpi
+                    Processproperty pp3 = new Processproperty();
+                    pp3.setTitel("Auflösung");
+                    pp3.setWert(fields[6].trim());
+                    pp3.setContainer("Scanvorgaben");
+                    io.getProcessProperties().add(pp3);
+
+                    // Bemerkungen
+                    Processproperty pp4 = new Processproperty();
+                    pp4.setTitel("Bemerkungen");
+                    pp4.setWert(fields[7].trim());
+                    pp4.setContainer("Scanvorgaben");
+                    io.getProcessProperties().add(pp4);
+
+                    // all additional collections that where selected
+                    if (form != null) {
+                        MetadataType typeCollection = prefs.getMetadataTypeByName("singleDigCollection");
+                        for (String c : form.getDigitalCollections()) {
+                            Metadata md = new Metadata(typeCollection);
+                            md.setValue(c);
+                            work.addMetadata(md);
+                        }
+                    }
+
+                    // end of 8 columns
+
                 } else {
 
                     // begin of 4 columns
+
+                    // Monographs und Multivolume works
+                    //
+                    // - Identifier
+                    // - Signatur
+                    // - Sammlung
+                    // - Titel
+                    //
+                    // Sample:
+                    //
+                    // 990056458180205000_1956 LGS 50  dc_ch17 Title of volume 1956
+                    // 990056123423000 X1Y2Z3  dc_ch17 Title of monograph
+                    // 990056458180205000_1957 LGS 50  dc_ch17 Title of volume 1957
+                    // 990056458180205000_1958 LGS 50  dc_ch17 Title of volume 1958
+
                     if (record.getId().contains("_")) {
 
                         // create multi volume work

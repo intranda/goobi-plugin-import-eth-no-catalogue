@@ -48,6 +48,20 @@ Spalte    | Metadatum       | Erläuterung
 `2`       | `Datum`         | Hierbei handelt es sich um die Pflichtangabe des Digitalisierungsdatums.
 
 
+### Acht Spalten für Karten
+Wenn acht Spalten verwendet werden, haben diese den folgenden Aufbau:
+
+Spalte    | Metadatum       | Erläuterung
+----------|-----------------|-------------------------
+`1`       | `Identifier`    | Hierbei handelt es sich um die Pflichtangabe des Identifiers.
+`2`       | `Signatur`      | Hierbei handelt es sich um die Pflichtangabe der Signatur.
+`3`       | `Sammlung`      | Hierbei handelt es sich um die Pflichtangabe der Sammlung.
+`4`       | `Datum`         | Hierbei handelt es sich um die Pflichtangabe des Digitalisierungsdatums.
+`5`       | `Einheiten`     | Hierbei handelt es sich um die Pflichtangabe der Einheiten.
+`6`       | `Scans`         | Hierbei handelt es sich um die Pflichtangabe der Scans.
+`7`       | `dpi`           | Hierbei handelt es sich um die Pflichtangabe der Auflösung.
+`8`       | `Bemerkungen`   | Hierbei handelt es sich um die Pflichtangabe mit Bemerkungen.
+
 
 Unmittelbar nach dem Einfügen der Daten und dem Klick auf `Speichern` startet das Anlegen der Vorgänge, ohne dass dabei ein Katalog abgefragt wird.
 

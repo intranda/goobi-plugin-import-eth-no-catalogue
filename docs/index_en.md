@@ -26,16 +26,44 @@ Once the plugin has been entered, a user interface is available in which the dat
 
 
 ## Overview and functionality
-After selecting the correct plugin, the data, which is either available as TAB-separated CSV data or copied from an Excel file, can be inserted into the `Records` field in the user interface. The data has the following structure:
+After selecting the correct plugin, the data that is either available as TAB-separated CSV data or copied from an Excel file can be inserted into the ‘Data records’ field in the user interface. The data has the following structure:
 
-Column    | Metadata        | Explanation
+### Four columns for monographs and multi-volume works
+If four columns are used, they have the following structure:
+
+Column    | Metadata       | Explanation
 ----------|-----------------|-------------------------
 `1`       | `MMS-ID`        | If this contains an underscore, a multi-volume work is created, otherwise a monograph. This is a mandatory entry.
-`2`       | `Shelfmark`     | This is a mandatory entry.
+`2`       | `Signature`      | This is a mandatory entry.
 `3`       | `Collection`    | Specification of the collection to be assigned. This is a mandatory entry.
 `4`       | `Title`         | This is an optional specification.
 
-Immediately after inserting the data and clicking on `Save`, the creation of the processes starts without a catalogue being requested.
+
+### Two columns for archive records
+If two columns are used, they have the following structure:
+
+Spalte    | Metadata       | Explanation
+----------|-----------------|-------------------------
+`1`       | `Signature`      | This is the mandatory signature information.
+`2`       | `Date`         | This is the mandatory entry of the digitisation date.
+
+
+### Eight columns for cards
+If eight columns are used, they have the following structure:
+
+Spalte    | Metadata       | Explanation
+----------|-----------------|-------------------------
+`1`       | `Identifier`    | This is the mandatory specification of the identifier.
+`2`       | `Signature`      | This is the mandatory signature information.
+`3`       | `Collection`      | This is the mandatory information for the collection.
+`4`       | `Date`         | This is the mandatory entry of the digitisation date.
+`5`       | `Units`     | This is the mandatory specification of the units.
+`6`       | `Scans`         | This is the mandatory information for the scans.
+`7`       | `dpi`           | This is the mandatory information for the resolution.
+`8`       | `Remarks`   | This is the mandatory information with comments.
+
+
+Immediately after inserting the data and clicking on ‘Save’, the creation of the processes starts without a catalogue being requested.
 
 
 ## Configuration
