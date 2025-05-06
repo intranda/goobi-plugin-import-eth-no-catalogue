@@ -5,7 +5,7 @@
 		<template>*</template>
 
 		<!-- define if import shall use GoobiScript to run in the background -->
-		<runAsGoobiScript>true</runAsGoobiScript>
+		<runAsGoobiScript>false</runAsGoobiScript>
 
 	</config>
 </config_plugin>
