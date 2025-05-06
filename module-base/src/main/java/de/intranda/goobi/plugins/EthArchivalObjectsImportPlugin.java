@@ -1,6 +1,7 @@
 package de.intranda.goobi.plugins;
 
 import java.io.File;
+import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -38,10 +39,10 @@ import ugh.fileformats.mets.MetsMods;
 
 @PluginImplementation
 @Log4j2
-public class EthNoCatalogueImportPlugin implements IImportPluginVersion2 {
+public class EthArchivalObjectsImportPlugin implements IImportPluginVersion2 {
 
     @Getter
-    private String title = "intranda_import_eth_no_catalogue";
+    private String title = "intranda_import_eth_archival_objects";
     @Getter
     private PluginType type = PluginType.Import;
 
@@ -73,7 +74,7 @@ public class EthNoCatalogueImportPlugin implements IImportPluginVersion2 {
     /**
      * define what kind of import plugin this is
      */
-    public EthNoCatalogueImportPlugin() {
+    public EthArchivalObjectsImportPlugin() {
         importTypes = new ArrayList<>();
         importTypes.add(ImportType.Record);
     }
@@ -82,7 +83,7 @@ public class EthNoCatalogueImportPlugin implements IImportPluginVersion2 {
      * read the configuration file
      */
     private void readConfig() {
-        XMLConfiguration xmlConfig = ConfigPlugins.getPluginConfig(title);
+        XMLConfiguration xmlConfig = ConfigPlugins.getPluginConfig("intranda_import_eth_no_catalogue");
         xmlConfig.setExpressionEngine(new XPathExpressionEngine());
         xmlConfig.setReloadingStrategy(new FileChangedReloadingStrategy());
 
@@ -140,80 +141,42 @@ public class EthNoCatalogueImportPlugin implements IImportPluginVersion2 {
                 // create publication
                 DocStruct work = null;
 
-                if (fields.length > 7) {
+                if (fields.length < 3) {
+                    // beginn of 2 columns only (Archival objects)
 
-                    // begin of 8 columns
-
-                    // Maps
+                    // HSA Archival material
                     //
                     // - Identifier
-                    // - Signatur
-                    // - Sammlung
                     // - Datum
-                    // - Einheiten
-                    // - Scans
-                    // - dpi
-                    // - Bemerkungen
                     //
                     // Sample:
                     //
-                    // 990004203480205503  Rar KS 758  dc_maps 16.01.2025  1   2   400 GS
+                    // HSA_123_001 13.01.2004
+                    // HSA_123_002 14.01.2004
+                    // HSA125  15.01.2004
+                    // HSA_123_003 16.01.2004
 
-                    // create a map
-                    DocStructType logicalType = prefs.getDocStrctTypeByName("SingleMap");
+                    // create an archival object
+                    DocStructType logicalType = prefs.getDocStrctTypeByName("ArchivalObject");
                     work = dd.createDocStruct(logicalType);
                     dd.setLogicalDocStruct(work);
 
-                    // Identifier - create metadata field for CatalogIDDigital with cleaned value
-                    Metadata md1 = new Metadata(prefs.getMetadataTypeByName("CatalogIDDigital"));
-                    md1.setValue(record.getId().replaceAll("\\W", "_"));
-                    work.addMetadata(md1);
-
-                    // Signatur - create metadata field for shelfmark
+                    // create metadata field for shelfmark
                     Metadata mdShelfmark = new Metadata(prefs.getMetadataTypeByName("shelfmarksource"));
-                    mdShelfmark.setValue(fields[1].trim());
+                    mdShelfmark.setValue(fields[0].trim());
                     work.addMetadata(mdShelfmark);
 
-                    // Sammlung - add collection to work
-                    Metadata mdCollection = new Metadata(prefs.getMetadataTypeByName("singleDigCollection"));
-                    mdCollection.setValue(fields[2].trim());
-                    work.addMetadata(mdCollection);
+                    // create date
+                    Metadata mdDate = new Metadata(prefs.getMetadataTypeByName("datedigit"));
+                    mdDate.setValue(fields[1].trim());
+                    work.addMetadata(mdDate);
 
-                    // Datum - create date
                     Processproperty pp0 = new Processproperty();
                     pp0.setTitel("Datum");
-                    pp0.setWert(fields[3].trim());
+                    pp0.setWert(fields[1].trim());
                     pp0.setContainer("Scanvorgaben");
                     io.getProcessProperties().add(pp0);
 
-                    // Einheiten
-                    Processproperty pp1 = new Processproperty();
-                    pp1.setTitel("Einheiten");
-                    pp1.setWert(fields[4].trim());
-                    pp1.setContainer("Scanvorgaben");
-                    io.getProcessProperties().add(pp1);
-
-                    // Scans
-                    Processproperty pp2 = new Processproperty();
-                    pp2.setTitel("Scans");
-                    pp2.setWert(fields[5].trim());
-                    pp2.setContainer("Scanvorgaben");
-                    io.getProcessProperties().add(pp2);
-
-                    // dpi
-                    Processproperty pp3 = new Processproperty();
-                    pp3.setTitel("Auflösung");
-                    pp3.setWert(fields[6].trim());
-                    pp3.setContainer("Scanvorgaben");
-                    io.getProcessProperties().add(pp3);
-
-                    // Bemerkungen
-                    Processproperty pp4 = new Processproperty();
-                    pp4.setTitel("Bemerkungen");
-                    pp4.setWert(fields[7].trim());
-                    pp4.setContainer("Scanvorgaben");
-                    io.getProcessProperties().add(pp4);
-
                     // all additional collections that where selected
                     if (form != null) {
                         MetadataType typeCollection = prefs.getMetadataTypeByName("singleDigCollection");
@@ -224,106 +187,55 @@ public class EthNoCatalogueImportPlugin implements IImportPluginVersion2 {
                         }
                     }
 
-                    // end of 8 columns
-
-                } else {
-
-                    // begin of 4 columns
-
-                    // Monographs und Multivolume works
-                    //
-                    // - Identifier
-                    // - Signatur
-                    // - Sammlung
-                    // - Titel
-                    //
-                    // Sample:
-                    //
-                    // 990056458180205000_1956 LGS 50  dc_ch17 Title of volume 1956
-                    // 990056123423000 X1Y2Z3  dc_ch17 Title of monograph
-                    // 990056458180205000_1957 LGS 50  dc_ch17 Title of volume 1957
-                    // 990056458180205000_1958 LGS 50  dc_ch17 Title of volume 1958
-
-                    if (record.getId().contains("_")) {
-
-                        // create multi volume work
-                        DocStructType anchorType = prefs.getDocStrctTypeByName("MultiVolumeWork");
-                        DocStruct anchor = dd.createDocStruct(anchorType);
-                        dd.setLogicalDocStruct(anchor);
-
-                        // add catalogue id to anchor
-                        Metadata anchorid = new Metadata(prefs.getMetadataTypeByName("CatalogIDDigital"));
-                        anchorid.setValue(record.getId().substring(0, record.getId().indexOf("_")));
-                        anchor.addMetadata(anchorid);
-
-                        // create metadata field for main title
-                        if (fields.length > 3) {
-                            Metadata mdTitle = new Metadata(prefs.getMetadataTypeByName("TitleDocMain"));
-                            mdTitle.setValue(fields[3].trim());
-                            anchor.addMetadata(mdTitle);
-                        }
-
-                        // add collection to work
-                        Metadata mdCollection = new Metadata(prefs.getMetadataTypeByName("singleDigCollection"));
-                        mdCollection.setValue(fields[2].trim());
-                        anchor.addMetadata(mdCollection);
-
-                        // add additional collections to anchor as well
-                        MetadataType typeCollection = prefs.getMetadataTypeByName("singleDigCollection");
-                        for (String c : form.getDigitalCollections()) {
-                            Metadata md = new Metadata(typeCollection);
-                            md.setValue(c);
-                            anchor.addMetadata(md);
-                        }
-
-                        // create volume
-                        DocStructType volumeType = prefs.getDocStrctTypeByName("Volume");
-                        work = dd.createDocStruct(volumeType);
-                        anchor.addChild(work);
-                    } else {
-
-                        // create a monograph
-                        DocStructType logicalType = prefs.getDocStrctTypeByName("Monograph");
-                        work = dd.createDocStruct(logicalType);
-                        dd.setLogicalDocStruct(work);
-                    }
-
                     // create metadata field for CatalogIDDigital with cleaned value
+                    String newID = record.getId().replaceAll("\\W", "_") + "_" + new SimpleDateFormat("yyyyMMdd_HHmmss").format(new java.util.Date());
+                    record.setId(newID);
                     Metadata md1 = new Metadata(prefs.getMetadataTypeByName("CatalogIDDigital"));
                     md1.setValue(record.getId().replaceAll("\\W", "_"));
                     work.addMetadata(md1);
 
-                    // create metadata field for year and sorting number
-                    if (record.getId().contains("_")) {
-                        String year = record.getId().substring(record.getId().indexOf("_") + 1);
+                    // end of 2 columns only (Archival objects)
+                } else {
 
-                        // year - not written, because in ETH it is not a year but a volume number
-                        // Metadata md3 = new Metadata(prefs.getMetadataTypeByName("PublicationYear"));
-                        // md3.setValue(year);
-                        // work.addMetadata(md3);
+                    // begin of 3 columns
 
-                        // Sorting number
-                        Metadata md4 = new Metadata(prefs.getMetadataTypeByName("CurrentNoSorting"));
-                        md4.setValue(year);
-                        work.addMetadata(md4);
-                    }
+                    // Archival boxes with maps in it works
+                    //
+                    // - Box
+                    // - Map
+                    // - Date
+                	//
+                    // Sample:
+                    //
+                    // Box01 Map01  13.01.2004
+                    // Box01 Map02  14.01.2004
+                    // Box02 Map01  15.01.2004
+
+                	// create an archival object
+                    DocStructType logicalType = prefs.getDocStrctTypeByName("ArchivalBoxObject");
+                    work = dd.createDocStruct(logicalType);
+                    dd.setLogicalDocStruct(work);
 
                     // create metadata field for shelfmark
-                    Metadata mdShelfmark = new Metadata(prefs.getMetadataTypeByName("shelfmarksource"));
-                    mdShelfmark.setValue(fields[1].trim());
-                    work.addMetadata(mdShelfmark);
+                    Metadata mdBox = new Metadata(prefs.getMetadataTypeByName("Box"));
+                    mdBox.setValue(fields[0].trim());
+                    work.addMetadata(mdBox);
 
-                    // add collection to work
-                    Metadata mdCollection = new Metadata(prefs.getMetadataTypeByName("singleDigCollection"));
-                    mdCollection.setValue(fields[2].trim());
-                    work.addMetadata(mdCollection);
+                    // create metadata field for shelfmark
+                    Metadata mdMap = new Metadata(prefs.getMetadataTypeByName("Mappe"));
+                    mdMap.setValue(fields[1].trim());
+                    work.addMetadata(mdMap);
 
-                    // create metadata field for main title
-                    if (fields.length > 3) {
-                        Metadata mdTitle = new Metadata(prefs.getMetadataTypeByName("TitleDocMain"));
-                        mdTitle.setValue(fields[3].trim());
-                        work.addMetadata(mdTitle);
-                    }
+                    // create date
+                    Metadata mdDate = new Metadata(prefs.getMetadataTypeByName("datedigit"));
+                    mdDate.setValue(fields[2].trim());
+                    work.addMetadata(mdDate);
+
+                    Processproperty pp0 = new Processproperty();
+                    pp0.setTitel("Datum");
+                    pp0.setWert(fields[2].trim());
+                    pp0.setContainer("Scanvorgaben");
+                    io.getProcessProperties().add(pp0);
 
                     // all additional collections that where selected
                     if (form != null) {
@@ -334,8 +246,15 @@ public class EthNoCatalogueImportPlugin implements IImportPluginVersion2 {
                             work.addMetadata(md);
                         }
                     }
+
+                    // create metadata field for CatalogIDDigital with cleaned value
+                    String newID = (fields[0].trim() + "_" + fields[1].trim()).replaceAll("\\W", "_") + "_" + new SimpleDateFormat("yyyyMMdd_HHmmss").format(new java.util.Date());
+                    record.setId(newID);
+                    Metadata md1 = new Metadata(prefs.getMetadataTypeByName("CatalogIDDigital"));
+                    md1.setValue(record.getId().replaceAll("\\W", "_"));
+                    work.addMetadata(md1);
                 }
-                // end of 4 columns
+                // end of 3 columns
 
                 // set the title for the Goobi process
                 io.setProcessTitle(record.getId().replaceAll("\\W", "_"));
