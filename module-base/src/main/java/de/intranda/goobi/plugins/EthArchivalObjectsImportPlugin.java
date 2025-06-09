@@ -207,24 +207,24 @@ public class EthArchivalObjectsImportPlugin implements IImportPluginVersion2 {
                 	//
                     // Sample:
                     //
-                    // Box01 Map01  13.01.2004
-                    // Box01 Map02  14.01.2004
-                    // Box02 Map01  15.01.2004
+                    // Box01 HSA_TMA_1  13.01.2004
+                    // Box01 HSA_TMA_2  14.01.2004
+                    // Box02 HSA_TMA_3  15.01.2004
 
                 	// create an archival object
-                    DocStructType logicalType = prefs.getDocStrctTypeByName("ArchivalBoxObject");
+                    DocStructType logicalType = prefs.getDocStrctTypeByName("ArchivalObject");
                     work = dd.createDocStruct(logicalType);
                     dd.setLogicalDocStruct(work);
 
-                    // create metadata field for shelfmark
+                    // create metadata field for Box
                     Metadata mdBox = new Metadata(prefs.getMetadataTypeByName("Box"));
                     mdBox.setValue(fields[0].trim());
                     work.addMetadata(mdBox);
-
+                    
                     // create metadata field for shelfmark
-                    Metadata mdMap = new Metadata(prefs.getMetadataTypeByName("Mappe"));
-                    mdMap.setValue(fields[1].trim());
-                    work.addMetadata(mdMap);
+                    Metadata mdShelfmark = new Metadata(prefs.getMetadataTypeByName("shelfmarksource"));
+                    mdShelfmark.setValue(fields[1].trim());
+                    work.addMetadata(mdShelfmark);
 
                     // create date
                     Metadata mdDate = new Metadata(prefs.getMetadataTypeByName("datedigit"));
@@ -248,10 +248,10 @@ public class EthArchivalObjectsImportPlugin implements IImportPluginVersion2 {
                     }
 
                     // create metadata field for CatalogIDDigital with cleaned value
-                    String newID = (fields[0].trim() + "_" + fields[1].trim()).replaceAll("\\W", "_") + "_" + new SimpleDateFormat("yyyyMMdd_HHmmss").format(new java.util.Date());
-                    record.setId(newID);
+                    String newID = (fields[0].trim() + "_" + fields[1].trim()).replaceAll("\\W", "_");
+                    record.setId(newID + "_" + new SimpleDateFormat("yyyyMMdd_HHmmss").format(new java.util.Date()));
                     Metadata md1 = new Metadata(prefs.getMetadataTypeByName("CatalogIDDigital"));
-                    md1.setValue(record.getId().replaceAll("\\W", "_"));
+                    md1.setValue(newID);
                     work.addMetadata(md1);
                 }
                 // end of 3 columns

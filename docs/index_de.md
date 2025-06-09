@@ -75,7 +75,7 @@ Wenn drei Spalten verwendet werden, haben diese den folgenden Aufbau:
 Spalte    | Metadatum       | Erläuterung
 ----------|-----------------|-------------------------
 `1`       | `Schachtel`     | Hierbei handelt es sich um die Pflichtangabe der Box-Nummer.
-`2`       | `Mappe`         | Hierbei handelt es sich um die Pflichtangabe der Mappen-Nummer.
+`2`       | `Signatur`         | Hierbei handelt es sich um die Pflichtangabe der Signatur.
 `3`       | `Datum`         | Hierbei handelt es sich um die Pflichtangabe des Digitalisierungsdatums.
 
 

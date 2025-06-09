@@ -65,7 +65,7 @@ If two columns are used, they have the following structure:
 
 Spalte    | Metadata       | Explanation
 ----------|----------------|-------------------------
-`1`       | `Signature`    | This is the mandatory signature information.
+`1`       | `Shelfmark`    | This is the mandatory shelfmark information.
 `2`       | `Date`         | This is the mandatory entry of the digitisation date.
 
 
@@ -75,7 +75,7 @@ Wenn drei Spalten verwendet werden, haben diese den folgenden Aufbau:
 Spalte    | Metadatum       | Erläuterung
 ----------|-----------------|-------------------------
 `1`       | `Box`           | This is the mandatory entry of the box number.
-`2`       | `Map`           | This is the mandatory entry of the folder number.
+`2`       | `Shelfmark`           | This is the mandatory entry of the shelfmark.
 `3`       | `Date`          | This is the mandatory entry of the digitisation date.
 
 
