@@ -20,6 +20,7 @@ import org.goobi.production.plugin.interfaces.IImportPluginVersion2;
 import org.goobi.production.properties.ImportProperty;
 
 import de.sub.goobi.config.ConfigPlugins;
+import de.sub.goobi.config.ConfigurationHelper;
 import de.sub.goobi.forms.MassImportForm;
 import de.sub.goobi.helper.exceptions.ImportPluginException;
 import lombok.Getter;
@@ -166,7 +167,8 @@ public class EthNoCatalogueImportPlugin implements IImportPluginVersion2 {
 
                     // Identifier - create metadata field for CatalogIDDigital with cleaned value
                     Metadata md1 = new Metadata(prefs.getMetadataTypeByName("CatalogIDDigital"));
-                    md1.setValue(record.getId().replaceAll("\\W", "_"));
+                    md1.setValue(record.getId().replaceAll(ConfigurationHelper.getInstance().getProcessTitleReplacementRegex(), "_"));
+
                     work.addMetadata(md1);
 
                     // Signatur - create metadata field for shelfmark
@@ -290,7 +292,7 @@ public class EthNoCatalogueImportPlugin implements IImportPluginVersion2 {
 
                     // create metadata field for CatalogIDDigital with cleaned value
                     Metadata md1 = new Metadata(prefs.getMetadataTypeByName("CatalogIDDigital"));
-                    md1.setValue(record.getId().replaceAll("\\W", "_"));
+                    md1.setValue(record.getId().replaceAll(ConfigurationHelper.getInstance().getProcessTitleReplacementRegex(), "_"));
                     work.addMetadata(md1);
 
                     // create metadata field for year and sorting number
@@ -338,7 +340,8 @@ public class EthNoCatalogueImportPlugin implements IImportPluginVersion2 {
                 // end of 4 columns
 
                 // set the title for the Goobi process
-                io.setProcessTitle(record.getId().replaceAll("\\W", "_"));
+                io.setProcessTitle(record.getId().replaceAll(ConfigurationHelper.getInstance().getProcessTitleReplacementRegex(), "_"));
+
                 String fileName = getImportFolder() + File.separator + io.getProcessTitle() + ".xml";
                 io.setMetsFilename(fileName);
                 fileformat.write(fileName);
