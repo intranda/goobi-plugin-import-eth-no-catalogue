@@ -3,6 +3,10 @@ title: Data import without catalogue query for ETH Zurich
 identifier: intranda_import_eth_no_catalogue
 description: This import plugin for Goobi workflow allows data to be imported without a catalogue query, as is required for ETH Zurich, especially for multi-volume works.
 published: true
+keywords:
+    - Goobi workflow
+    - Plugin
+    - Import Plugin
 ---
 
 ## Introduction

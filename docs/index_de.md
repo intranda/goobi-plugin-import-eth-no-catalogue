@@ -3,6 +3,10 @@ title: Datenimport ohne Katalogabfrage für die ETH Zürich
 identifier: intranda_import_eth_no_catalogue
 description: Dieses Import Plugin für Goobi workflow erlaubt das Einspielen von Daten ohne Katalogabfrage, wie es für die ETH Zürich speziell für Mehrbändige Werke benötigt wird.
 published: true
+keywords:
+    - Goobi workflow
+    - Plugin
+    - Import Plugin
 ---
 
 ## Einführung
