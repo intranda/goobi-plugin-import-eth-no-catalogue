@@ -15,7 +15,7 @@ More information about the functionality of this plugin and the complete documen
 
 Detail                      | Description
 --------------------------- | ----------------------
-**Plugin identifier**       | intranda_import_ZZZ
+**Plugin identifier**       | intranda_import_eth_no_catalogue
 **Plugin type**             | import
 **Licence**                 | GPL 2.0 or newer
 **Documentation (German)**  | https://docs.goobi.io/de/workflow/plugins/import/goobi-plugin-import-eth-no-catalogue
